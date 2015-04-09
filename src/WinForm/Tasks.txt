@@ -1,0 +1,11 @@
+﻿1. TODO List (prefixed with - means done.)
+-a) Add monitor about CPU and memory usage;
+-b) Add an option to filter out address with balance==0
+-c) Add an option to send email when get an address with balance>0
+-d) Desktop notification when get an address with balance>0
+-e) Save the address with FirstSeen!=null and scan it next time
+-f) Add other address format (private key start with "L"?)
+.
+.
+.
+z) Improve UI and suport muti-language
