@@ -137,7 +137,7 @@ namespace CP.CoinSniffer.BitCoin
                     var address = new BitCoinAddress(keyCompressed);
                     RefreshData(address);
                     OnSniffed(address);
-                    System.Threading.Thread.Sleep(this.Interval);
+                    Sleep();
                 }
                 catch (ThreadAbortException)
                 {
@@ -149,7 +149,30 @@ namespace CP.CoinSniffer.BitCoin
                 catch (Exception ex)
                 {
                     OnErrorCaught(ex);
-                    System.Threading.Thread.Sleep(this.Interval);
+                    Sleep();
+                }
+            }
+        }
+
+        private void Sleep()
+        {
+            int timeSlice = 200;
+            if (this.Interval < timeSlice)
+            {
+                System.Threading.Thread.Sleep(this.Interval);
+            }
+            else
+            {
+                for (int i = 0; i < this.Interval / timeSlice; i++)
+                {
+                    if (this.Started)
+                    {
+                        Thread.Sleep(timeSlice);
+                    }
+                    else
+                    {
+                        break;
+                    }
                 }
             }
         }
