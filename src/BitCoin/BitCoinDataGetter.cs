@@ -17,7 +17,7 @@ namespace CP.CoinSniffer.BitCoin
         public decimal GetBalance(string address)
         {
             var webClient = new WebClient();
-            var queryUrl = string.Format("http://blockexplorer.com/q/addressbalance/{0}", address);
+            var queryUrl = string.Format("http://blockexplorer.com/api/addr/{0}/balance", address);
             var s = webClient.DownloadString(queryUrl);
             decimal result;
             try
@@ -37,6 +37,8 @@ namespace CP.CoinSniffer.BitCoin
         /// <returns>DateTime of first seen</returns>
         public DateTime? GetFirstSeen(string address)
         {
+            return null;//just return null for now, as following api not working
+
             var webClient = new WebClient();
             var queryUrl = string.Format("http://blockexplorer.com/q/addressfirstseen/{0}", address);
             var s = webClient.DownloadString(queryUrl);

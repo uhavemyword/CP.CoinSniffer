@@ -335,7 +335,7 @@ namespace CP.CoinSniffer.WinForm
                 }
                 else if (menu.Name == this.BalanceMenuItem.Name)
                 {
-                    Process.Start(string.Format("http://blockexplorer.com/q/addressbalance/{0}", address));
+                    Process.Start(string.Format("http://blockexplorer.com/api/addr/{0}/balance", address));
                 }
                 else if (menu.Name == this.FirstSeenMenuItem.Name)
                 {
