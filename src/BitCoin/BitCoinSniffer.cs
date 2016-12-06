@@ -15,7 +15,8 @@ namespace CP.CoinSniffer.BitCoin
 
     public class BitCoinSniffer
     {
-        private List<Thread> _threads = new List<Thread>();
+        private List<Task> _tasks;
+        private CancellationTokenSource _tokenSource;
 
         private Random _random = new Random();
 
@@ -69,12 +70,13 @@ namespace CP.CoinSniffer.BitCoin
             if (!Started)
             {
                 Started = true;
+                _tasks = new List<Task>();
+                _tokenSource = new CancellationTokenSource();
                 for (int i = 0; i < ThreadCount; i++)
                 {
-                    var t = new Thread(new ThreadStart(Run));
-                    t.IsBackground = true;
-                    _threads.Add(t);
-                    t.Start();
+                    var task = new Task(() => Run(_tokenSource.Token), _tokenSource.Token, TaskCreationOptions.LongRunning);
+                    _tasks.Add(task);
+                    task.Start();
                 }
             }
         }
@@ -93,10 +95,20 @@ namespace CP.CoinSniffer.BitCoin
             if (Started)
             {
                 this.Started = false;
-                System.Threading.Thread.Sleep(100); // wait some time for starting thread
-                this._threads.ForEach(t => t.Abort());
-                this._threads.ForEach(t => t.Join());
-                this._threads.Clear();
+                try
+                {
+                    _tokenSource.Cancel();
+                    Task.WaitAll(_tasks.ToArray(), 1000, _tokenSource.Token);
+                    _tasks.Clear();
+                }
+                catch (OperationCanceledException)
+                {
+                    // do nothing, this is expected if a task is canceled in running state.
+                }
+                catch (AggregateException ex)
+                {
+                    ex.Handle(x => x is OperationCanceledException);
+                }
             }
         }
 
@@ -118,10 +130,11 @@ namespace CP.CoinSniffer.BitCoin
             }
         }
 
-        private void Run()
+        private void Run(CancellationToken token)
         {
             while (this.Started)
             {
+                token.ThrowIfCancellationRequested();
                 try
                 {
                     bool keyCompressed;
@@ -138,13 +151,6 @@ namespace CP.CoinSniffer.BitCoin
                     RefreshData(address);
                     OnSniffed(address);
                     Sleep();
-                }
-                catch (ThreadAbortException)
-                {
-                    // ThreadAbortException is a special exception that can be caught by application code, 
-                    // but is rethrown at the end of the catch block unless ResetAbort is called. 
-                    // ResetAbort cancels the request to abort, and prevents the ThreadAbortException from terminating the thread.
-                    Thread.ResetAbort();
                 }
                 catch (Exception ex)
                 {
