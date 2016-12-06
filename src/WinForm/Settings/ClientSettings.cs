@@ -12,7 +12,7 @@ namespace CP.CoinSniffer.WinForm.Settings
     using System.Linq;
     using System.Text;
 
-    public class ClientSettings : ISettings
+    public class ClientSettings : IMySettings
     {
         #region User Settings
 

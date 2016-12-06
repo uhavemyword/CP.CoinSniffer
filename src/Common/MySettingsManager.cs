@@ -6,9 +6,11 @@
 namespace CP.CoinSniffer.Common
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Collections.Generic;
     using System.IO;
     using System.Linq;
+    using System.Reflection;
     using System.Xml.Serialization;
 
     /// <summary>
@@ -17,35 +19,58 @@ namespace CP.CoinSniffer.Common
     public static class MySettingsManager
     {
         private static string _settingsFolder;
-        private static Dictionary<string, object> _settingsDic = new Dictionary<string, object>();
+        private static ConcurrentDictionary<string, object> _settingsDic = new ConcurrentDictionary<string, object>();
 
         public static string SettingsFolder
         {
-            get
+            get { return _settingsFolder; }
+        }
+
+        static MySettingsManager()
+        {
+            string value = System.Configuration.ConfigurationManager.AppSettings["MySettingsFolder"];
+            if (string.IsNullOrEmpty(value))
             {
-                if (string.IsNullOrEmpty(_settingsFolder))
-                {
-                    _settingsFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "CoinSniffer");
-                }
-                return _settingsFolder;
+                _settingsFolder = Path.GetDirectoryName(Assembly.GetEntryAssembly().Location);
             }
-            set
+            else if (Path.IsPathRooted(value))
             {
                 _settingsFolder = value;
             }
+            else if (value.StartsWith("$(") && value.IndexOf(")") > 2)
+            {
+                // value like "$(MyDocuments)Configuration"
+
+                int index = value.IndexOf(")");
+                string specialString = value.Substring(2, index - 2);
+                Environment.SpecialFolder specialEnum;
+                if (Enum.TryParse<Environment.SpecialFolder>(specialString, out specialEnum))
+                {
+                    string rest = value.Length > index ? value.Substring(index + 1, value.Length - index - 1) : string.Empty;
+                    _settingsFolder = Path.Combine(Environment.GetFolderPath(specialEnum), rest.TrimStart(new char[] { '\\' }));
+                }
+                else
+                {
+                    throw new FormatException(string.Format("Can't parse the special folder $({0})!", specialString));
+                }
+            }
+            else
+            {
+                _settingsFolder = Path.Combine(Path.GetDirectoryName(Assembly.GetEntryAssembly().Location), value);
+            }
         }
 
-        public static T GetSettings<T>(string module = null)
-            where T : ISettings, new()
+        public static T GetSettings<T>(string subFolder = null)
+            where T : IMySettings, new()
         {
             string partialPath = null;
-            if (string.IsNullOrEmpty(module))
+            if (string.IsNullOrEmpty(subFolder))
             {
                 partialPath = string.Format(@"{0}.xml", typeof(T).FullName);
             }
             else
             {
-                partialPath = string.Format(@"{0}\{1}.xml", module, typeof(T).FullName);
+                partialPath = string.Format(@"{0}\{1}.xml", subFolder, typeof(T).FullName);
             }
 
             var fullPath = Path.Combine(SettingsFolder, partialPath);
@@ -53,14 +78,7 @@ namespace CP.CoinSniffer.Common
             if (!_settingsDic.Keys.Contains(fullPath))
             {
                 var settings = LoadSettings<T>(fullPath);
-                try
-                {
-                    _settingsDic.Add(fullPath, settings);
-                }
-                catch (ArgumentException)
-                {
-                    // Do nothing. The Try logic is to make sure thread safe.
-                }
+                _settingsDic.TryAdd(fullPath, settings);
             }
             return (T)_settingsDic[fullPath];
         }
@@ -69,11 +87,11 @@ namespace CP.CoinSniffer.Common
         {
             foreach (var item in _settingsDic)
             {
-                Write(item.Key, item.Value as ISettings);
+                Write(item.Key, item.Value as IMySettings);
             }
         }
 
-        public static void SaveSingle(ISettings settings)
+        public static void SaveSingle(IMySettings settings)
         {
             if (settings == null)
             {
@@ -84,21 +102,20 @@ namespace CP.CoinSniffer.Common
             {
                 if (settings.Equals(item.Value))
                 {
-                    Write(item.Key, item.Value as ISettings);
+                    Write(item.Key, item.Value as IMySettings);
+                    return;
                 }
             }
         }
 
         private static T LoadSettings<T>(string fullPath)
-            where T : ISettings, new()
+            where T : IMySettings, new()
         {
             T settings;
             if (!File.Exists(fullPath))
             {
-                Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
                 settings = new T();
                 settings.Initialize();
-                Write(fullPath, settings);
             }
             else
             {
@@ -110,8 +127,13 @@ namespace CP.CoinSniffer.Common
         /// <summary>
         /// Writes settings to file.
         /// </summary>
-        private static void Write(string fullPath, ISettings settings)
+        private static void Write(string fullPath, IMySettings settings)
         {
+            if (!Directory.Exists(Path.GetDirectoryName(fullPath)))
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(fullPath));
+            }
+
             using (var writer = new StreamWriter(fullPath))
             {
                 var serializer = new XmlSerializer(settings.GetType());
@@ -124,24 +146,25 @@ namespace CP.CoinSniffer.Common
         /// </summary>
         /// <returns>Instance of type T</returns>
         private static T Read<T>(string fullPath)
-            where T : ISettings, new()
+            where T : IMySettings, new()
         {
             T settings;
-            using (var fs = new FileStream(fullPath, FileMode.Open))
+            try
             {
-                try
+                using (var fs = new FileStream(fullPath, FileMode.Open))
                 {
                     var serializer = new XmlSerializer(typeof(T));
                     settings = (T)serializer.Deserialize(fs);
-                }
-                catch (Exception)
-                {
-                    var t = new T();
-                    t.Initialize();
-                    return t;
+                    return settings;
                 }
             }
-            return settings;
+            catch
+            {
+                var t = new T();
+                t.Initialize();
+                Write(fullPath, t);
+                return t;
+            }
         }
     }
 }

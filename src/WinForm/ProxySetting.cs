@@ -11,7 +11,7 @@ namespace CP.CoinSniffer.WinForm
     using System.Linq;
     using System.Text;
 
-    public class ProxySetting : ISettings
+    public class ProxySetting : IMySettings
     {
         public bool Enabled { get; set; }
         public string Address { get; set; }

@@ -32,6 +32,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -41,7 +42,7 @@
   <ItemGroup>
     <Compile Include="Extensions.cs" />
     <Compile Include="ICoinDataGetter.cs" />
-    <Compile Include="ISettings.cs" />
+    <Compile Include="IMySettings.cs" />
     <Compile Include="MySettingsManager.cs" />
     <Compile Include="NotificationObject.cs" />
     <Compile Include="PerformanceMonitor.cs" />

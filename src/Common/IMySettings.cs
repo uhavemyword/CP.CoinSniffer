@@ -5,7 +5,7 @@
 
 namespace CP.CoinSniffer.Common
 {
-    public interface ISettings
+    public interface IMySettings
     {
         void Initialize();
     }
