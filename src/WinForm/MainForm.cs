@@ -46,7 +46,7 @@ namespace CP.CoinSniffer.WinForm
 
             var process = Process.GetCurrentProcess();
             this._monitor = new PerformanceMonitor(process.Id);
-            this._monitor.CpuUsageChanged += Monitor_CpuUsageChanged;
+            this._monitor.OverallUsageChanged += Monitor_OverallUsageChanged;
             this._monitor.Monitor();
 
             NotifyUIOnStatusChange(started: false);
@@ -70,11 +70,11 @@ namespace CP.CoinSniffer.WinForm
             }));
         }
 
-        private void Monitor_CpuUsageChanged(int percentage)
+        private void Monitor_OverallUsageChanged(int cpuPercentage, decimal memoryUsage)
         {
             this.BeginInvoke(new MethodInvoker(() =>
             {
-                this.PerformanceStatusLabel.Text = string.Format("CPU {0}%", percentage.ToString().PadLeft(2, ' '));
+                this.PerformanceStatusLabel.Text = string.Format("CPU {0}% Memory {1:N}MB", cpuPercentage.ToString().PadLeft(2, ' '), memoryUsage / 1024);
             }));
         }
 
