@@ -21,6 +21,10 @@ namespace CP.CoinSniffer.Common
         private Task _task;
         private CancellationTokenSource _tokenSource;
 
+        public PerformanceMonitor() : this(Process.GetCurrentProcess().Id)
+        {
+        }
+
         public PerformanceMonitor(int processId)
         {
             this._processId = processId;
