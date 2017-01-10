@@ -47,14 +47,14 @@ namespace CP.CoinSniffer.BitCoin
 
             address.FirstSeen = coinDataGetter.GetFirstSeen(address.PublicKey.Value);
 
-            if (address.FirstSeen.HasValue)
-            {
-                address.Balance = coinDataGetter.GetBalance(address.PublicKey.Value);
-            }
-            else
-            {
-                address.Balance = 0;
-            }
+            //if (address.FirstSeen.HasValue)
+            //{
+            address.Balance = coinDataGetter.GetBalance(address.PublicKey.Value);
+            //}
+            //else
+            //{
+            //    address.Balance = 0;
+            //}
         }
 
         public delegate void SniffedEventHandler(BitCoinAddress address);
